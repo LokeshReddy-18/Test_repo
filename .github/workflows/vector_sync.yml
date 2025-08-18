@@ -1,12 +1,21 @@
 name: VectorDB Sync
 
 on:
+  # Run when a PR is merged into main
   pull_request:
     types: [closed]
 
+  # Run on direct pushes to main branch
+  push:
+    branches:
+      - main
+
 jobs:
   sync:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+    # For PR: only if merged into main
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
@@ -24,12 +33,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true  # won't fail if no requirements
+          pip install -r requirements.txt || true
 
       - name: Detect changed files (root + submodules)
         run: |
-          echo "🔎 Detecting main repo file changes..."
-          git diff --name-status origin/main HEAD > changed_files.txt || true
+          echo "🔎 Detecting changes..."
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "Push to main branch detected"
+            git diff --name-status HEAD^ HEAD > changed_files.txt || true
+          else
+            echo "Pull request merged into main detected"
+            git diff --name-status origin/main HEAD > changed_files.txt || true
+          fi
+
           cat changed_files.txt
 
           echo "🔎 Detecting submodule pointer changes..."
