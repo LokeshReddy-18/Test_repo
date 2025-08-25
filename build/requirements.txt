@@ -1,0 +1,7 @@
+pinecone
+openai
+tiktoken
+tree_sitter
+tqdm
+pyyaml
+pandas
